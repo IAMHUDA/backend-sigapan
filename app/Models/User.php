@@ -6,27 +6,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-
+    use HasApiTokens, HasFactory, Notifiable; 
     /**
-     * The attributes that are mass assignable.
+     * Atribut yang bisa diisi secara massal.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'is_admin', 
+        'is_petugas_pasar', 
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Atribut yang harus disembunyikan untuk serialisasi.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -34,15 +36,14 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Atribut yang harus di-cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_admin' => 'boolean', // Penting: cast ke boolean
+        'is_petugas_pasar' => 'boolean',
+    ];
 }
