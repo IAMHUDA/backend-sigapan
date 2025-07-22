@@ -67,6 +67,85 @@ class AuthController extends Controller
             'message' => 'Logout berhasil!'
         ]);
     }
+    /**
+     * Tangani permintaan registrasi pengguna baru.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function create(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'is_admin' => ['nullable', 'boolean'],
+            'is_petugas_pasar' => ['nullable', 'boolean'],
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'is_admin' => $request->is_admin ?? false,
+            'is_petugas_pasar' => $request->is_petugas_pasar ?? false,
+        ]);
+
+        return response()->json([
+            'message' => 'Pengguna berhasil dibuat.',
+            'user' => $user,
+        ], 201);
+    }
+
+
+    /**
+     * Update profil pengguna yang sedang login.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            // Tambahkan validasi lain jika diperlukan, misalnya password atau no HP
+        ]);
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui.',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Hapus akun pengguna yang sedang login.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy(Request $request)
+    {
+        $user = $request->user();
+
+        // Hapus semua token akses terlebih dahulu
+        $user->tokens()->delete();
+
+        // Hapus akun pengguna
+        $user->delete();
+
+        return response()->json([
+            'message' => 'Akun berhasil dihapus.'
+        ]);
+    }
+
 
     /**
      * Dapatkan detail pengguna yang sedang diautentikasi.
@@ -87,4 +166,3 @@ class AuthController extends Controller
         ]);
     }
 }
-

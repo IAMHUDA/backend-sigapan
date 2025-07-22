@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BahanPokokController;
 use App\Http\Controllers\Api\HargaBapokController;
 use App\Http\Controllers\Api\PasarController;
+use App\Http\Controllers\Api\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,7 +25,14 @@ Route::get('/harga-bapok',action:[HargaBapokController::class,'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user', [AuthController::class, 'update']); 
+    Route::delete('/user', [AuthController::class, 'destroy']); 
+    Route::post('/register', [AuthController::class, 'create']);
 });
+
+
+// routes/api.php
+Route::middleware('auth:sanctum')->get('/petugas-pasar', [UserController::class, 'index']);
 
 // 🛡️ Rute CRUD hanya untuk admin & crew
 Route::middleware('auth:sanctum')->group(function () {
