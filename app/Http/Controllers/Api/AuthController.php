@@ -104,26 +104,34 @@ class AuthController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request)
-    {
-        $user = $request->user();
+    public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
 
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            // Tambahkan validasi lain jika diperlukan, misalnya password atau no HP
-        ]);
+    $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $id],
+        'is_admin' => ['nullable', 'boolean'],
+        'is_petugas_pasar' => ['nullable', 'boolean'],
+    ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
+    $user->update($request->only('name', 'email', 'is_admin', 'is_petugas_pasar'));
 
-        return response()->json([
-            'message' => 'Profil berhasil diperbarui.',
-            'user' => $user
-        ]);
-    }
+    return response()->json([
+        'message' => 'User berhasil diperbarui.',
+        'data' => $user
+    ]);
+}
+
+public function show($id)
+{
+    $user = User::findOrFail($id);
+
+    return response()->json([
+        'data' => $user,
+    ]);
+}
+
 
     /**
      * Hapus akun pengguna yang sedang login.
@@ -131,22 +139,25 @@ class AuthController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(Request $request)
+    public function destroy($id)
     {
-        $user = $request->user();
+        $user = User::find($id);
 
-        // Hapus semua token akses terlebih dahulu
-        $user->tokens()->delete();
+        if (! $user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
 
-        // Hapus akun pengguna
         $user->delete();
 
-        return response()->json([
-            'message' => 'Akun berhasil dihapus.'
-        ]);
+        return response()->json(['message' => 'User deleted successfully.'], 200);
     }
 
-
+public function index()
+{
+    return response()->json([
+        'data' => User::select('id', 'name', 'email', 'is_admin', 'is_petugas_pasar')->get(),
+    ]);
+}
     /**
      * Dapatkan detail pengguna yang sedang diautentikasi.
      *
@@ -166,3 +177,5 @@ class AuthController extends Controller
         ]);
     }
 }
+
+

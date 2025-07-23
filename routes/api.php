@@ -24,9 +24,10 @@ Route::get('/harga-bapok',action:[HargaBapokController::class,'index']);
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
-    Route::put('/user', [AuthController::class, 'update']); 
-    Route::delete('/user', [AuthController::class, 'destroy']); 
+    Route::get('/user', [UserController::class, 'index']);
+    Route::get('/user/{id}', [UserController::class, 'show']);
+    Route::put('/user/{id}', [UserController::class, 'update']);
+    Route::delete('/user/{id}', [UserController::class, 'destroy']);
     Route::post('/register', [AuthController::class, 'create']);
 });
 
