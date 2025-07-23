@@ -65,7 +65,7 @@ class BahanPokokController extends Controller
 
         try {
             $validatedData = $request->validate([
-                'id_api_bahan_pokok' => 'required|integer', 
+                
                 'urutan' => 'nullable|integer',
                 'nama' => 'required|string|max:50',
                 'satuan' => 'required|string|max:10',
@@ -117,7 +117,6 @@ class BahanPokokController extends Controller
 
         try {
             $validatedData = $request->validate([
-                'id_api_bahan_pokok' => 'required|integer',
                 'urutan' => 'nullable|integer',
                 'nama' => 'required|string|max:50',
                 'satuan' => 'nullable|string|max:10',

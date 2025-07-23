@@ -37,7 +37,7 @@ Route::middleware('auth:sanctum')->get('/petugas-pasar', [UserController::class,
 
 // 🛡️ Rute CRUD hanya untuk admin & crew
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/bahan-pokok', [BahanPokokController::class, 'store']);        // CREATE
+    Route::post('/bahan-pokok', [BahanPokokController::class, 'store']);        
     Route::put('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'update']); // UPDATE
     Route::patch('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'update']); // UPDATE
     Route::delete('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'destroy']); // DELETE
