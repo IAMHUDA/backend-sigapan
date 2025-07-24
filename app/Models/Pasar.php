@@ -18,7 +18,6 @@ class Pasar extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'id_api_pasar',
         'nama',
         'alamat',
         'foto',

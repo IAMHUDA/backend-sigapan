@@ -44,7 +44,6 @@ class PasarController extends Controller
         // Diotorisasi oleh PasarPolicy@create
         try {
             $validatedData = $request->validate([
-                'id_api_pasar' => 'required|integer|unique:pasar,id_api_pasar',
                 'nama' => 'required|string|max:255',
                 'alamat' => 'nullable|string|max:255',
                 'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -107,8 +106,7 @@ class PasarController extends Controller
     {
         // Diotorisasi oleh PasarPolicy@update
         try {
-            $validatedData = $request->validate([
-                'id_api_pasar' => 'required|integer|unique:pasar,id_api_pasar,' . $pasar->id,
+            $validatedData = $request->validate([   
                 'nama' => 'required|string|max:255',
                 'alamat' => 'nullable|string|max:255',
                 'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
