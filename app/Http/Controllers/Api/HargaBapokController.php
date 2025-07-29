@@ -51,7 +51,7 @@ class HargaBapokController extends Controller
                 'id_bahan_pokok' => 'required|exists:bahan_pokok,id',
                 'tanggal' => 'required|date',
                 'harga' => 'required|numeric|min:0',
-                'stok' => 'required|numeric|min:0',
+                'stok' => 'required|integer|min:0',
                 'status_integrasi' => 'nullable|string|max:255',
             ]);
 
@@ -103,7 +103,7 @@ class HargaBapokController extends Controller
                 'id_bahan_pokok' => 'required|exists:bahan_pokok,id',
                 'tanggal' => 'required|date',
                 'harga' => 'required|numeric|min:0',
-                'stok' => 'required|string|max:6',
+                'stok' => 'required|integer|min:0',
                 'status_integrasi' => 'nullable|string|max:255',
             ]);
 

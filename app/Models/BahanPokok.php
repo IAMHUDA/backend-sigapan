@@ -33,8 +33,8 @@ class BahanPokok extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'up_stok' => 'boolean', // Cast 0/1 menjadi boolean
-        'stok_wajib' => 'boolean', // Cast 0/1 menjadi boolean
+        'up_stok' => 'integer',
+        'stok_wajib' => 'integer', 
     ];
 }
 

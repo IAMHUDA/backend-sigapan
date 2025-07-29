@@ -23,8 +23,8 @@ Route::get('/harga-bapok',action:[HargaBapokController::class,'index']);
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user/me', [UserController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [UserController::class, 'index']);
     Route::get('/user/{id}', [UserController::class, 'show']);
     Route::put('/user/{id}', [UserController::class, 'update']);
     Route::delete('/user/{id}', [UserController::class, 'destroy']);
@@ -38,9 +38,9 @@ Route::middleware('auth:sanctum')->get('/petugas-pasar', [UserController::class,
 // 🛡️ Rute CRUD hanya untuk admin & crew
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bahan-pokok', [BahanPokokController::class, 'store']);        
-    Route::put('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'update']); // UPDATE
-    Route::patch('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'update']); // UPDATE
-    Route::delete('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'destroy']); // DELETE
+    Route::put('/bahan-pokok/{id}', [BahanPokokController::class, 'update']); // UPDATE
+    Route::patch('/bahan-pokok/{id}', [BahanPokokController::class, 'update']); // UPDATE
+    Route::delete('/bahan-pokok/{id}', [BahanPokokController::class, 'destroy']); // DELETE
 
 
     Route::post('/harga-bapok', [HargaBapokController::class, 'store']);        // CREATE

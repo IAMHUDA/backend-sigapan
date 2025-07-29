@@ -14,8 +14,8 @@ class UserController extends Controller
     public function index()
     {
         $users = User::select('id', 'name', 'email', 'is_admin', 'is_petugas_pasar')
-                    ->where('is_petugas_pasar', true)
-                    ->get();
+            ->where('is_petugas_pasar', true)
+            ->get();
 
         return response()->json([
             'status' => 'success',
@@ -84,5 +84,16 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully.'], 200);
+    }
+    /**
+     * Tampilkan user yang sedang login
+     */
+    public function me(Request $request)
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User profile berhasil diambil.',
+            'data' => $request->user()
+        ]);
     }
 }
