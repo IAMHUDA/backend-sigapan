@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HargaBapok;
-use App\Models\BahanPokok; 
-use App\Models\Pasar; 
+use App\Models\BahanPokok;
+use App\Models\Pasar;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HargaBapokController extends Controller
 {
@@ -34,7 +36,7 @@ class HargaBapokController extends Controller
         $hargaBapok = HargaBapok::with(['pasar', 'bahanPokok'])->orderBy('tanggal', 'desc')->get();
         return response()->json($hargaBapok);
     }
-    
+
 
     /**
      * Simpan harga bahan pokok baru ke penyimpanan.
@@ -83,7 +85,7 @@ class HargaBapokController extends Controller
     public function show(HargaBapok $harga_bapok)
     {
         // Diotorisasi oleh HargaBapokPolicy@view
-        $harga_bapok->load(['pasar', 'bahanPokok']); 
+        $harga_bapok->load(['pasar', 'bahanPokok']);
         return response()->json($harga_bapok);
     }
 
@@ -142,5 +144,60 @@ class HargaBapokController extends Controller
             ], 500);
         }
     }
-}
 
+    public function summary()
+    {
+        $allBahanPokok = BahanPokok::all();
+
+        $summary = [];
+
+        foreach ($allBahanPokok as $bahanPokok) {
+            // 2. Untuk setiap bahan pokok, ambil dua harga terbaru
+            $latestPrices = DB::table('harga_bapok')
+                ->where('id_bahan_pokok', $bahanPokok->id)
+                ->orderBy('tanggal', 'desc')
+                ->take(2)
+                ->get();
+
+            // Jika tidak ada data harga sama sekali untuk komoditas ini, lewati
+            if ($latestPrices->count() < 1) {
+                continue;
+            }
+
+            // Atur harga hari ini dan kemarin (dari data terbaru)
+            $priceTodayData = $latestPrices->first();
+            $priceYesterdayData = $latestPrices->count() > 1 ? $latestPrices->last() : null;
+
+            $avgPriceToday = $priceTodayData->harga;
+            $avgPriceYesterday = $priceYesterdayData ? $priceYesterdayData->harga : $avgPriceToday;
+
+            $priceChange = $avgPriceToday - $avgPriceYesterday;
+            $percentageChange = ($avgPriceYesterday > 0) ? ($priceChange / $avgPriceYesterday) * 100 : 0;
+
+            $changeStatus = 'same';
+            if ($percentageChange > 0.01) {
+                $changeStatus = 'up';
+            } elseif ($percentageChange < -0.01) {
+                $changeStatus = 'down';
+            }
+
+            $summary[] = [
+                'id' => $bahanPokok->id,
+                'name' => $bahanPokok->nama,
+                'image_url' => $bahanPokok->foto,
+                'unit' => $bahanPokok->satuan,
+                'price' => round($avgPriceToday),
+                'change_status' => $changeStatus,
+                'change_percent' => ($percentageChange > 0 ? '+' : '') . number_format($percentageChange, 2) . '%',
+            ];
+        }
+
+        // Tentukan tanggal update dari harga terbaru secara keseluruhan
+        $latestOverallDate = DB::table('harga_bapok')->max('tanggal');
+
+        return response()->json([
+            'tanggal_update' => $latestOverallDate,
+            'data' => $summary
+        ]);
+    }
+}
