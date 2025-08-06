@@ -18,15 +18,10 @@ use App\Http\Controllers\Api\UserController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/bahan-pokok', [BahanPokokController::class, 'index']);
 Route::get('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'show']);
-<<<<<<< HEAD
-Route::get('/pasar', action: [PasarController::class, 'index']);
-Route::get('/harga-bapok', action: [HargaBapokController::class, 'index']);
-Route::get('/bahan-pokoks', action: [HargaBapokController::class, 'daftarHargaBapok']);
-=======
 Route::get('/pasar', [PasarController::class, 'index']);
 Route::get('/harga-bapok', [HargaBapokController::class, 'index']);
 Route::get('/bahan-pokoks', [HargaBapokController::class, 'summary']);
->>>>>>> 4ef06dacb9db46c9671a64a16f2f0694880a10c8
+Route::get('/tabel-stok', [HargaBapokController::class, 'table']);
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {

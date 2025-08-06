@@ -123,9 +123,6 @@ class HargaBapokController extends Controller
         }
     }
 
-<<<<<<< HEAD
-    public function daftarHargaBapok()
-=======
     /**
      * Tampilkan data harga bahan pokok dalam bentuk tabel sederhana.
      */
@@ -151,7 +148,6 @@ class HargaBapokController extends Controller
      * Tampilkan ringkasan harga terbaru dan perubahannya untuk semua bahan pokok.
      */
     public function summary()
->>>>>>> 4ef06dacb9db46c9671a64a16f2f0694880a10c8
     {
         $allBahanPokok = BahanPokok::all();
         $summary = [];
