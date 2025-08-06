@@ -145,26 +145,23 @@ class HargaBapokController extends Controller
         }
     }
 
-    public function summary()
+    public function daftarHargaBapok()
     {
         $allBahanPokok = BahanPokok::all();
 
         $summary = [];
 
         foreach ($allBahanPokok as $bahanPokok) {
-            // 2. Untuk setiap bahan pokok, ambil dua harga terbaru
             $latestPrices = DB::table('harga_bapok')
                 ->where('id_bahan_pokok', $bahanPokok->id)
                 ->orderBy('tanggal', 'desc')
                 ->take(2)
                 ->get();
 
-            // Jika tidak ada data harga sama sekali untuk komoditas ini, lewati
             if ($latestPrices->count() < 1) {
                 continue;
             }
 
-            // Atur harga hari ini dan kemarin (dari data terbaru)
             $priceTodayData = $latestPrices->first();
             $priceYesterdayData = $latestPrices->count() > 1 ? $latestPrices->last() : null;
 
@@ -192,7 +189,6 @@ class HargaBapokController extends Controller
             ];
         }
 
-        // Tentukan tanggal update dari harga terbaru secara keseluruhan
         $latestOverallDate = DB::table('harga_bapok')->max('tanggal');
 
         return response()->json([
