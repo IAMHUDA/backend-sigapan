@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HargaBapok;
-use App\Models\BahanPokok; 
-use App\Models\Pasar; 
+use App\Models\BahanPokok;
+use App\Models\Pasar;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HargaBapokController extends Controller
 {
@@ -17,34 +18,27 @@ class HargaBapokController extends Controller
      */
     public function __construct()
     {
-        // Hanya Admin dan Petugas Pasar yang dapat mengelola data HargaBapok
         // $this->middleware('auth:sanctum');
-        // Otorisasi menggunakan HargaBapokPolicy
         // $this->authorizeResource(HargaBapok::class, 'harga_bapok');
     }
 
     /**
      * Tampilkan daftar semua harga bahan pokok.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
     public function index()
     {
-        // Diotorisasi oleh HargaBapokPolicy@viewAny
-        $hargaBapok = HargaBapok::with(['pasar', 'bahanPokok'])->orderBy('tanggal', 'desc')->get();
+        $hargaBapok = HargaBapok::with(['pasar', 'bahanPokok'])
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
         return response()->json($hargaBapok);
     }
 
-
     /**
      * Simpan harga bahan pokok baru ke penyimpanan.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
-        // Diotorisasi oleh HargaBapokPolicy@create
         try {
             $validatedData = $request->validate([
                 'id_pasar' => 'required|exists:pasar,id',
@@ -55,7 +49,6 @@ class HargaBapokController extends Controller
                 'status_integrasi' => 'nullable|string|max:255',
             ]);
 
-            // Mengisi created_by dengan email pengguna yang sedang login
             $validatedData['created_by'] = Auth::user()->name;
 
             $hargaBapok = HargaBapok::create($validatedData);
@@ -76,27 +69,18 @@ class HargaBapokController extends Controller
 
     /**
      * Tampilkan harga bahan pokok yang ditentukan.
-     *
-     * @param  \App\Models\HargaBapok  $harga_bapok
-     * @return \Illuminate\Http\JsonResponse
      */
     public function show(HargaBapok $harga_bapok)
     {
-        // Diotorisasi oleh HargaBapokPolicy@view
         $harga_bapok->load(['pasar', 'bahanPokok']);
         return response()->json($harga_bapok);
     }
 
     /**
      * Perbarui harga bahan pokok yang ditentukan dalam penyimpanan.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\HargaBapok  $harga_bapok
-     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, HargaBapok $harga_bapok)
     {
-        // Diotorisasi oleh HargaBapokPolicy@update
         try {
             $validatedData = $request->validate([
                 'id_pasar' => 'required|exists:pasar,id',
@@ -125,13 +109,9 @@ class HargaBapokController extends Controller
 
     /**
      * Hapus harga bahan pokok yang ditentukan dari penyimpanan.
-     *
-     * @param  \App\Models\HargaBapok  $harga_bapok
-     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(HargaBapok $harga_bapok)
     {
-        // Diotorisasi oleh HargaBapokPolicy@delete
         try {
             $harga_bapok->delete();
             return response()->json(['message' => 'Harga bahan pokok berhasil dihapus.'], 204);
@@ -142,5 +122,81 @@ class HargaBapokController extends Controller
             ], 500);
         }
     }
-}
 
+    /**
+     * Tampilkan data harga bahan pokok dalam bentuk tabel sederhana.
+     */
+    public function table()
+    {
+        $data = HargaBapok::with(['pasar', 'bahanPokok'])->get();
+
+        $result = $data->map(function ($item) {
+            return [
+                'komoditas' => $item->bahanPokok ? ucwords($item->bahanPokok->nama) : null,
+                'pasar' => $item->pasar ? $item->pasar->nama : null,
+                'status' => $item->status_integrasi,
+                'stok' => $item->stok,
+                'harga' => (int) $item->harga,
+                'perubahan' => (int) $item->harga
+            ];
+        });
+
+        return response()->json($result);
+    }
+
+    /**
+     * Tampilkan ringkasan harga terbaru dan perubahannya untuk semua bahan pokok.
+     */
+    public function summary()
+    {
+        $allBahanPokok = BahanPokok::all();
+        $summary = [];
+
+        foreach ($allBahanPokok as $bahanPokok) {
+            $latestPrices = DB::table('harga_bapok')
+                ->where('id_bahan_pokok', $bahanPokok->id)
+                ->orderBy('tanggal', 'desc')
+                ->take(2)
+                ->get();
+
+            if ($latestPrices->count() < 1) {
+                continue;
+            }
+
+            $priceTodayData = $latestPrices->first();
+            $priceYesterdayData = $latestPrices->count() > 1 ? $latestPrices->last() : null;
+
+            $avgPriceToday = $priceTodayData->harga;
+            $avgPriceYesterday = $priceYesterdayData ? $priceYesterdayData->harga : $avgPriceToday;
+
+            $priceChange = $avgPriceToday - $avgPriceYesterday;
+            $percentageChange = ($avgPriceYesterday > 0)
+                ? ($priceChange / $avgPriceYesterday) * 100
+                : 0;
+
+            $changeStatus = 'same';
+            if ($percentageChange > 0.01) {
+                $changeStatus = 'up';
+            } elseif ($percentageChange < -0.01) {
+                $changeStatus = 'down';
+            }
+
+            $summary[] = [
+                'id' => $bahanPokok->id,
+                'name' => $bahanPokok->nama,
+                'image_url' => $bahanPokok->foto,
+                'unit' => $bahanPokok->satuan,
+                'price' => round($avgPriceToday),
+                'change_status' => $changeStatus,
+                'change_percent' => ($percentageChange > 0 ? '+' : '') . number_format($percentageChange, 2) . '%',
+            ];
+        }
+
+        $latestOverallDate = DB::table('harga_bapok')->max('tanggal');
+
+        return response()->json([
+            'tanggal_update' => $latestOverallDate,
+            'data' => $summary
+        ]);
+    }
+}
