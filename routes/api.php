@@ -18,39 +18,47 @@ use App\Http\Controllers\Api\UserController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/bahan-pokok', [BahanPokokController::class, 'index']);
 Route::get('/bahan-pokok/{bahan_pokok}', [BahanPokokController::class, 'show']);
+<<<<<<< HEAD
 Route::get('/pasar', action: [PasarController::class, 'index']);
 Route::get('/harga-bapok', action: [HargaBapokController::class, 'index']);
 Route::get('/bahan-pokoks', action: [HargaBapokController::class, 'daftarHargaBapok']);
+=======
+Route::get('/pasar', [PasarController::class, 'index']);
+Route::get('/harga-bapok', [HargaBapokController::class, 'index']);
+Route::get('/bahan-pokoks', [HargaBapokController::class, 'summary']);
+>>>>>>> 4ef06dacb9db46c9671a64a16f2f0694880a10c8
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {
+    // Auth & Profil
     Route::get('/user/me', [UserController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/register', [AuthController::class, 'create']);
+
+    // Manajemen User
     Route::get('/user/{id}', [UserController::class, 'show']);
     Route::put('/user/{id}', [UserController::class, 'update']);
     Route::delete('/user/{id}', [UserController::class, 'destroy']);
-    Route::post('/register', [AuthController::class, 'create']);
-});
 
+    // Petugas Pasar
+    Route::get('/petugas-pasar', [UserController::class, 'index']);
 
-// routes/api.php
-Route::middleware('auth:sanctum')->get('/petugas-pasar', [UserController::class, 'index']);
-
-// 🛡️ Rute CRUD hanya untuk admin & crew
-Route::middleware('auth:sanctum')->group(function () {
+    // 🔧 Bahan Pokok (CRUD)
     Route::post('/bahan-pokok', [BahanPokokController::class, 'store']);
-    Route::put('/bahan-pokok/{id}', [BahanPokokController::class, 'update']); // UPDATE
-    Route::patch('/bahan-pokok/{id}', [BahanPokokController::class, 'update']); // UPDATE
-    Route::delete('/bahan-pokok/{id}', [BahanPokokController::class, 'destroy']); // DELETE
+    Route::put('/bahan-pokok/{id}', [BahanPokokController::class, 'update']);
+    Route::patch('/bahan-pokok/{id}', [BahanPokokController::class, 'update']);
+    Route::delete('/bahan-pokok/{id}', [BahanPokokController::class, 'destroy']);
 
+    // 📊 Harga Bapok (CRUD + Table)
+    Route::post('/harga-bapok', [HargaBapokController::class, 'store']);
+    Route::put('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']);
+    Route::patch('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']);
+    Route::delete('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'destroy']);
+    Route::get('/harga-bapok-table', [HargaBapokController::class, 'table']);
 
-    Route::post('/harga-bapok', [HargaBapokController::class, 'store']);        // CREATE
-    Route::put('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']); // UPDATE
-    Route::patch('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']); // UPDATE
-    Route::delete('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'destroy']); // DELETE
-
-    Route::post('/pasar', [PasarController::class, 'store']);        // CREATE
-    Route::put('/pasar/{pasar}', [PasarController::class, 'update']); // UPDATE
-    Route::patch('/pasar/{pasar}', [PasarController::class, 'update']); // UPDATE
-    Route::delete('/pasar/{pasar}', [PasarController::class, 'destroy']); // DELETE
+    // 🏪 Pasar (CRUD)
+    Route::post('/pasar', [PasarController::class, 'store']);
+    Route::put('/pasar/{pasar}', [PasarController::class, 'update']);
+    Route::patch('/pasar/{pasar}', [PasarController::class, 'update']);
+    Route::delete('/pasar/{pasar}', [PasarController::class, 'destroy']);
 });
