@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']); // UPDATE
     Route::patch('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'update']); // UPDATE
     Route::delete('/harga-bapok/{harga_bapok}', [HargaBapokController::class, 'destroy']); // DELETE
+    Route::get('/harga-bapok-table', [HargaBapokController::class, 'table']);
 
     Route::post('/pasar', [PasarController::class, 'store']);        // CREATE
     Route::put('/pasar/{pasar}', [PasarController::class, 'update']); // UPDATE

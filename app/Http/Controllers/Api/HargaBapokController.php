@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HargaBapok;
-use App\Models\BahanPokok; 
-use App\Models\Pasar; 
+use App\Models\BahanPokok;
+use App\Models\Pasar;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
 
 class HargaBapokController extends Controller
 {
@@ -34,7 +34,7 @@ class HargaBapokController extends Controller
         $hargaBapok = HargaBapok::with(['pasar', 'bahanPokok'])->orderBy('tanggal', 'desc')->get();
         return response()->json($hargaBapok);
     }
-    
+
 
     /**
      * Simpan harga bahan pokok baru ke penyimpanan.
@@ -83,7 +83,7 @@ class HargaBapokController extends Controller
     public function show(HargaBapok $harga_bapok)
     {
         // Diotorisasi oleh HargaBapokPolicy@view
-        $harga_bapok->load(['pasar', 'bahanPokok']); 
+        $harga_bapok->load(['pasar', 'bahanPokok']);
         return response()->json($harga_bapok);
     }
 
@@ -142,5 +142,22 @@ class HargaBapokController extends Controller
             ], 500);
         }
     }
-}
 
+    public function table()
+    {
+        $data = HargaBapok::with(['pasar', 'bahanPokok'])->get();
+
+        $result = $data->map(function ($item) {
+            return [
+                'komoditas' => $item->bahanPokok ? ucwords($item->bahanPokok->nama) : null,
+                'pasar' => $item->pasar ? $item->pasar->nama : null,
+                'status' => $item->status_integrasi,
+                'stok' => $item->stok,
+                'harga' => (int) $item->harga,
+                'perubahan' => (int) $item->harga
+            ];
+        });
+
+        return response()->json($result);
+    }
+}
