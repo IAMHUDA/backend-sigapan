@@ -26,19 +26,19 @@ class HargaBapokController extends Controller
      * Tampilkan daftar semua harga bahan pokok.
      */
     public function index(Request $request)
-{
-    $query = HargaBapok::with(['pasar', 'bahanPokok'])
-        ->orderBy('tanggal', 'desc');
+    {
+        $query = HargaBapok::with(['pasar', 'bahanPokok'])
+            ->orderBy('tanggal', 'desc');
 
-    // Jika ada parameter id_pasar, filter berdasarkan pasar
-    if ($request->has('id_pasar')) {
-        $query->where('id_pasar', $request->id_pasar);
+        // Jika ada parameter id_pasar, filter berdasarkan pasar
+        if ($request->has('id_pasar')) {
+            $query->where('id_pasar', $request->id_pasar);
+        }
+
+        $hargaBapok = $query->get();
+
+        return response()->json($hargaBapok);
     }
-
-    $hargaBapok = $query->get();
-
-    return response()->json($hargaBapok);
-}
 
     /**
      * Simpan harga bahan pokok baru ke penyimpanan.
@@ -100,72 +100,72 @@ class HargaBapokController extends Controller
      * Perbarui harga bahan pokok yang ditentukan dalam penyimpanan.
      */
     public function update(Request $request, HargaBapok $harga_bapok)
-{
-    try {
-        $validatedData = $request->validate([
-            'id_pasar' => 'required|exists:pasar,id',
-            'id_bahan_pokok' => 'required|exists:bahan_pokok,id',
-            'tanggal' => 'required|date',
-            'harga' => 'required|integer|min:0',
-            'harga_baru' => 'required|integer|min:0',
-            'stok' => 'required|integer|min:0',
-            'status_integrasi' => 'nullable|string|max:255',
-        ]);
+    {
+        try {
+            $validatedData = $request->validate([
+                'id_pasar' => 'required|exists:pasar,id',
+                'id_bahan_pokok' => 'required|exists:bahan_pokok,id',
+                'tanggal' => 'required|date',
+                'harga' => 'required|integer|min:0',
+                'harga_baru' => 'required|integer|min:0',
+                'stok' => 'required|integer|min:0',
+                'status_integrasi' => 'nullable|string|max:255',
+            ]);
 
-        // Cek apakah update akan menyebabkan duplikasi dengan record lain
-        $existingData = HargaBapok::where('id_pasar', $validatedData['id_pasar'])
-            ->where('id_bahan_pokok', $validatedData['id_bahan_pokok'])
-            ->whereDate('tanggal', $validatedData['tanggal'])
-            ->where('id', '!=', $harga_bapok->id)
-            ->first();
+            // Cek apakah update akan menyebabkan duplikasi dengan record lain
+            $existingData = HargaBapok::where('id_pasar', $validatedData['id_pasar'])
+                ->where('id_bahan_pokok', $validatedData['id_bahan_pokok'])
+                ->whereDate('tanggal', $validatedData['tanggal'])
+                ->where('id', '!=', $harga_bapok->id)
+                ->first();
 
-        if ($existingData) {
-            return response()->json([
-                'message' => 'Data untuk kombinasi pasar, bahan pokok, dan tanggal ini sudah ada.',
-                'existing_data' => $existingData
-            ], 409); // 409 Conflict
-        }
-
-        $harga_bapok->update($validatedData);
-
-        // Hitung perubahan harga setelah update
-        $hargaLama = (int) $harga_bapok->harga;
-        $hargaBaru = (int) $harga_bapok->harga_baru;
-
-        $perubahan = 'data tidak lengkap';
-        $persen = null;
-
-        if ($hargaLama > 0 && $hargaBaru > 0) {
-            $selisih = $hargaBaru - $hargaLama;
-            $persen = ($selisih / $hargaLama) * 100;
-
-            if ($persen > 0.1) {
-                $perubahan = 'naik ' . number_format($persen, 2) . '%';
-            } elseif ($persen < -0.1) {
-                $perubahan = 'turun ' . number_format(abs($persen), 2) . '%';
-            } else {
-                $perubahan = 'tetap';
+            if ($existingData) {
+                return response()->json([
+                    'message' => 'Data untuk kombinasi pasar, bahan pokok, dan tanggal ini sudah ada.',
+                    'existing_data' => $existingData
+                ], 409); // 409 Conflict
             }
-        }
 
-        return response()->json([
-            'message' => 'Data berhasil diperbarui.',
-            'data' => $harga_bapok,
-            'perubahan' => $perubahan,
-            'persentase' => $persen !== null ? round($persen, 2) . '%' : null
-        ]);
-    } catch (ValidationException $e) {
-        return response()->json([
-            'message' => 'Validasi gagal.',
-            'errors' => $e->errors()
-        ], 422);
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Terjadi kesalahan saat memperbarui harga bahan pokok.',
-            'error' => $e->getMessage()
-        ], 500);
+            $harga_bapok->update($validatedData);
+
+            // Hitung perubahan harga setelah update
+            $hargaLama = (int) $harga_bapok->harga;
+            $hargaBaru = (int) $harga_bapok->harga_baru;
+
+            $perubahan = 'data tidak lengkap';
+            $persen = null;
+
+            if ($hargaLama > 0 && $hargaBaru > 0) {
+                $selisih = $hargaBaru - $hargaLama;
+                $persen = ($selisih / $hargaLama) * 100;
+
+                if ($persen > 0.1) {
+                    $perubahan = 'naik ' . number_format($persen, 2) . '%';
+                } elseif ($persen < -0.1) {
+                    $perubahan = 'turun ' . number_format(abs($persen), 2) . '%';
+                } else {
+                    $perubahan = 'tetap';
+                }
+            }
+
+            return response()->json([
+                'message' => 'Data berhasil diperbarui.',
+                'data' => $harga_bapok,
+                'perubahan' => $perubahan,
+                'persentase' => $persen !== null ? round($persen, 2) . '%' : null
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi gagal.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat memperbarui harga bahan pokok.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
 
     /**
@@ -239,6 +239,7 @@ class HargaBapokController extends Controller
     public function summary()
     {
         $allBahanPokok = BahanPokok::all();
+        $latestOverallDate = DB::table('harga_bapok')->max('tanggal');
         $summary = [];
 
         foreach ($allBahanPokok as $bahanPokok) {
@@ -276,12 +277,12 @@ class HargaBapokController extends Controller
                 'image_url' => $bahanPokok->foto,
                 'unit' => $bahanPokok->satuan,
                 'price' => round($avgPriceToday),
+                'tanggal_terakhir' => $latestOverallDate,
                 'change_status' => $changeStatus,
                 'change_percent' => ($percentageChange > 0 ? '+' : '') . number_format($percentageChange, 2) . '%',
             ];
         }
 
-        $latestOverallDate = DB::table('harga_bapok')->max('tanggal');
 
         return response()->json([
             'tanggal_update' => $latestOverallDate,
