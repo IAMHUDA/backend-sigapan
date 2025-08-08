@@ -47,5 +47,11 @@ class Pasar extends Model
     {
         return $this->hasMany(HargaBapok::class, 'id_pasar');
     }
+
+    public function users()
+{
+    return $this->hasMany(User::class, 'id_pasar');
+}
+
 }
 

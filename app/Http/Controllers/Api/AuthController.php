@@ -48,6 +48,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'is_admin' => $user->is_admin,
                 'is_petugas_pasar' => $user->is_petugas_pasar,
+                'id_pasar' => $user->id_pasar,
             ]
         ]);
     }
@@ -81,6 +82,8 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'is_admin' => ['nullable', 'boolean'],
             'is_petugas_pasar' => ['nullable', 'boolean'],
+            'id_pasar' => 'required|exists:pasar,id', 
+            'no_telepon' => ['required', 'string', 'min:10', 'max:15', 'regex:/^08[0-9]{8,12}$/'],
         ]);
 
         $user = User::create([
@@ -89,6 +92,8 @@ class AuthController extends Controller
             'password' => bcrypt($request->password),
             'is_admin' => $request->is_admin ?? false,
             'is_petugas_pasar' => $request->is_petugas_pasar ?? false,
+            'id_pasar' => $request->id_pasar,
+            'no_telepon' => $request->no_telepon,
         ]);
 
         return response()->json([
@@ -105,32 +110,33 @@ class AuthController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $id],
-        'is_admin' => ['nullable', 'boolean'],
-        'is_petugas_pasar' => ['nullable', 'boolean'],
-    ]);
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $id],
+            'is_admin' => ['nullable', 'boolean'],
+            'is_petugas_pasar' => ['nullable', 'boolean'],
+            'id_pasar' => 'required|exists:pasar,id',
+            'no_telepon' => ['required', 'string', 'min:10', 'max:15', 'regex:/^08[0-9]{8,12}$/'],
+        ]);
 
-    $user->update($request->only('name', 'email', 'is_admin', 'is_petugas_pasar'));
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'is_admin' => $request->is_admin ?? false,
+            'is_petugas_pasar' => $request->is_petugas_pasar ?? false,
+            'id_pasar' => $request->id_pasar,
+            'no_telepon' => $request->no_telepon,
+        ]);
 
-    return response()->json([
-        'message' => 'User berhasil diperbarui.',
-        'data' => $user
-    ]);
-}
+        return response()->json([
+            'message' => 'User berhasil diperbarui.',
+            'data' => $user
+        ]);
+    }
 
-public function show($id)
-{
-    $user = User::findOrFail($id);
-
-    return response()->json([
-        'data' => $user,
-    ]);
-}
 
 
     /**
@@ -152,12 +158,12 @@ public function show($id)
         return response()->json(['message' => 'User deleted successfully.'], 200);
     }
 
-public function index()
-{
-    return response()->json([
-        'data' => User::select('id', 'name', 'email', 'is_admin', 'is_petugas_pasar')->get(),
-    ]);
-}
+    public function index()
+    {
+        return response()->json([
+            'data' => User::select('id', 'name', 'email', 'is_admin', 'is_petugas_pasar')->get(),
+        ]);
+    }
     /**
      * Dapatkan detail pengguna yang sedang diautentikasi.
      *
@@ -177,5 +183,3 @@ public function index()
         ]);
     }
 }
-
-

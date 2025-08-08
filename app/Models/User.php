@@ -21,8 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'no_telepon',
         'is_admin', 
         'is_petugas_pasar', 
+        'id_pasar',
     ];
 
     /**
@@ -46,4 +48,10 @@ class User extends Authenticatable
         'is_admin' => 'boolean', // Penting: cast ke boolean
         'is_petugas_pasar' => 'boolean',
     ];
+
+    public function pasar()
+{
+    return $this->belongsTo(Pasar::class, 'id_pasar');
+}
+
 }
