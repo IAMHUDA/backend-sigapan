@@ -21,7 +21,6 @@ class HargaBapok extends Model
         'id_bahan_pokok',
         'tanggal',
         'harga',
-        'harga_baru',
         'created_by',
         'stok',
         'status_integrasi',
@@ -35,7 +34,6 @@ class HargaBapok extends Model
     protected $casts = [
         'tanggal' => 'date',
         'harga' => 'integer', 
-        'harga_baru' => 'integer',
     ];
 
     /**
