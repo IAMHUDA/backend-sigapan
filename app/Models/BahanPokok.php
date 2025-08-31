@@ -18,7 +18,6 @@ class BahanPokok extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'id_api_bahan_pokok',
         'urutan',
         'nama',
         'satuan',

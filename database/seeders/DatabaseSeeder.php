@@ -23,5 +23,9 @@ class DatabaseSeeder extends Seeder
             'is_admin' => 1,
             'is_petugas_pasar' => 0
         ]);
+
+        $this->call([
+            HargaBapokSeeder::class,
+        ]);
     }
 }

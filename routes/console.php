@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Models\HargaBapok; // Pastikan model ini diimport
+use App\Models\AkumulasiHarga; // Pastikan model ini diimport
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -70,3 +72,42 @@ Schedule::call(function () {
 })->dailyAt('09:35');
 
 Schedule::command('inspire')->everyMinute();
+
+
+
+Schedule::call(function () {
+    try {
+        Log::info('Scheduler: Mulai menghitung rata-rata harga harian (semua pasar per bahan pokok) untuk hari ini.');
+        
+        // Mengubah variabel menjadi $currentDate untuk merefleksikan 'hari ini'
+        $currentDate = Carbon::today()->toDateString(); // Menggunakan tanggal hari ini
+
+        $results = HargaBapok::select(
+                'id_bahan_pokok',
+                DB::raw('AVG(harga) as harga_rata2')
+            )
+            ->whereDate('tanggal', $currentDate) // Filter hanya untuk data hari ini
+            ->groupBy('id_bahan_pokok') // Rata-rata harga semua pasar, per bahan pokok
+            ->get();
+
+        $count = 0;
+        foreach ($results as $row) {
+            AkumulasiHarga::updateOrCreate(
+                [
+                    'id_bahan_pokok' => $row->id_bahan_pokok,
+                    'tanggal' => $currentDate, // Gunakan $currentDate untuk tanggal akumulasi
+                ],
+                [
+                    'harga_rata2' => $row->harga_rata2,
+                ]
+            );
+            $count++;
+        }
+
+        Log::info("Scheduler: Berhasil memperbarui $count data akumulasi harga untuk tanggal $currentDate.");
+    } catch (\Exception $e) {
+        Log::error("Scheduler Akumulasi Error: " . $e->getMessage());
+    }
+// Mengubah jadwal dari everyMinute() menjadi dailyAt() untuk efisiensi
+})->dailyAt('19:47');
+
