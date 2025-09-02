@@ -67,4 +67,3 @@ class HargaBapok extends Model
         return $this->belongsTo(User::class, 'created_by', 'email'); // Asumsi created_by menyimpan email
     }
 }
-

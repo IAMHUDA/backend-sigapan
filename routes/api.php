@@ -22,6 +22,7 @@ Route::get('/pasar', [PasarController::class, 'index']);
 Route::get('/harga-bapok', [HargaBapokController::class, 'index']);
 Route::get('/bahan-pokoks', [HargaBapokController::class, 'summary']);
 Route::get('/tabel-stok', [HargaBapokController::class, 'table']);
+Route::get('/bahan-pokok/grafik/{id_bahan_pokok}', [HargaBapokController::class, 'getHargaBahanPokok']);
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {

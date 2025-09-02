@@ -22,60 +22,60 @@ class HargaBapokController extends Controller
 
 
     public function index(Request $request)
-{
-    // Mengambil tanggal dari permintaan, atau menggunakan tanggal hari ini sebagai default
-    $tanggal = $request->input('tanggal', Carbon::today()->toDateString());
+    {
+        // Mengambil tanggal dari permintaan, atau menggunakan tanggal hari ini sebagai default
+        $tanggal = $request->input('tanggal', Carbon::today()->toDateString());
 
-    // 1. Kueri utama hanya mengambil data untuk tanggal yang diminta
-    $query = HargaBapok::with(['pasar', 'bahanPokok'])
-        ->whereDate('tanggal', $tanggal) // <-- Tambahkan filter tanggal di sini
-        ->orderBy('tanggal', 'desc');
+        // 1. Kueri utama hanya mengambil data untuk tanggal yang diminta
+        $query = HargaBapok::with(['pasar', 'bahanPokok'])
+            ->whereDate('tanggal', $tanggal) // <-- Tambahkan filter tanggal di sini
+            ->orderBy('tanggal', 'desc');
 
-    if ($request->has('id_pasar')) {
-        $query->where('id_pasar', $request->id_pasar);
-    }
-
-    $hargaBapokCollection = $query->get();
-
-    $resultsWithChanges = [];
-
-    foreach ($hargaBapokCollection as $item) {
-        $currentPrice = (int) $item->harga;
-
-        // 2. Kueri untuk harga sebelumnya disesuaikan untuk mencari di tanggal sebelumnya saja
-        $previousHarga = HargaBapok::where('id_pasar', $item->id_pasar)
-            ->where('id_bahan_pokok', $item->id_bahan_pokok)
-            ->whereDate('tanggal', '<', $tanggal) // Cari harga sebelum tanggal yang diminta
-            ->whereNotNull('harga')
-            ->where('harga', '>', 0)
-            ->orderBy('tanggal', 'desc')
-            ->value('harga');
-
-        $changeStatus = 'no-previous-data';
-        $percentageChange = 0;
-
-        if ($previousHarga !== null && $previousHarga > 0) {
-            $selisih = $currentPrice - $previousHarga;
-            $persen = ($selisih / $previousHarga) * 100;
-
-            if ($persen > 0.1) {
-                $changeStatus = 'up';
-                $percentageChange = $persen;
-            } elseif ($persen < -0.1) {
-                $changeStatus = 'down';
-                $percentageChange = abs($persen);
-            } else {
-                $changeStatus = 'same';
-                $percentageChange = 0;
-            }
+        if ($request->has('id_pasar')) {
+            $query->where('id_pasar', $request->id_pasar);
         }
-        $item->change_status = $changeStatus;
-        $item->change_percent = number_format($percentageChange, 2);
-        $resultsWithChanges[] = $item;
-    }
 
-    return response()->json($resultsWithChanges);
-}
+        $hargaBapokCollection = $query->get();
+
+        $resultsWithChanges = [];
+
+        foreach ($hargaBapokCollection as $item) {
+            $currentPrice = (int) $item->harga;
+
+            // 2. Kueri untuk harga sebelumnya disesuaikan untuk mencari di tanggal sebelumnya saja
+            $previousHarga = HargaBapok::where('id_pasar', $item->id_pasar)
+                ->where('id_bahan_pokok', $item->id_bahan_pokok)
+                ->whereDate('tanggal', '<', $tanggal) // Cari harga sebelum tanggal yang diminta
+                ->whereNotNull('harga')
+                ->where('harga', '>', 0)
+                ->orderBy('tanggal', 'desc')
+                ->value('harga');
+
+            $changeStatus = 'no-previous-data';
+            $percentageChange = 0;
+
+            if ($previousHarga !== null && $previousHarga > 0) {
+                $selisih = $currentPrice - $previousHarga;
+                $persen = ($selisih / $previousHarga) * 100;
+
+                if ($persen > 0.1) {
+                    $changeStatus = 'up';
+                    $percentageChange = $persen;
+                } elseif ($persen < -0.1) {
+                    $changeStatus = 'down';
+                    $percentageChange = abs($persen);
+                } else {
+                    $changeStatus = 'same';
+                    $percentageChange = 0;
+                }
+            }
+            $item->change_status = $changeStatus;
+            $item->change_percent = number_format($percentageChange, 2);
+            $resultsWithChanges[] = $item;
+        }
+
+        return response()->json($resultsWithChanges);
+    }
 
     public function store(Request $request)
     {
@@ -222,63 +222,63 @@ class HargaBapokController extends Controller
 
 
     public function table()
-{
-    // Ambil semua harga per pasar dan bahan pokok, urutkan dari terbaru
-    $data = HargaBapok::with(['pasar', 'bahanPokok'])
-        ->whereNotNull('harga')
-        ->where('harga', '>', 0)
-        ->orderBy('id_bahan_pokok')
-        ->orderBy('tanggal', 'asc') // supaya bisa bandingkan mundur
-        ->get();
+    {
+        // Ambil semua harga per pasar dan bahan pokok, urutkan dari terbaru
+        $data = HargaBapok::with(['pasar', 'bahanPokok'])
+            ->whereNotNull('harga')
+            ->where('harga', '>', 0)
+            ->orderBy('id_bahan_pokok')
+            ->orderBy('tanggal', 'asc') // supaya bisa bandingkan mundur
+            ->get();
 
-    $result = [];
-    $lastHarga = []; // simpan harga terakhir tiap (id_pasar, id_bahan_pokok)
+        $result = [];
+        $lastHarga = []; // simpan harga terakhir tiap (id_pasar, id_bahan_pokok)
 
-    foreach ($data as $item) {
-        $stok = (int) $item->stok;
-        $stokWajib = (int) optional($item->bahanPokok)->stok_wajib;
-        $status = $stok >= $stokWajib ? 'Tersedia' : 'Terbatas';
+        foreach ($data as $item) {
+            $stok = (int) $item->stok;
+            $stokWajib = (int) optional($item->bahanPokok)->stok_wajib;
+            $status = $stok >= $stokWajib ? 'Tersedia' : 'Terbatas';
 
-        $hargaBaru = (int) $item->harga;
-        $key = $item->id_pasar . '-' . $item->id_bahan_pokok;
+            $hargaBaru = (int) $item->harga;
+            $key = $item->id_pasar . '-' . $item->id_bahan_pokok;
 
-        $changeStatus = 'N/A';
-        $percentageChange = 0;
+            $changeStatus = 'N/A';
+            $percentageChange = 0;
 
-        if (isset($lastHarga[$key]) && $lastHarga[$key] > 0) {
-            $hargaSebelumnya = $lastHarga[$key];
-            $selisih = $hargaBaru - $hargaSebelumnya;
-            $persen = ($selisih / $hargaSebelumnya) * 100;
+            if (isset($lastHarga[$key]) && $lastHarga[$key] > 0) {
+                $hargaSebelumnya = $lastHarga[$key];
+                $selisih = $hargaBaru - $hargaSebelumnya;
+                $persen = ($selisih / $hargaSebelumnya) * 100;
 
-            if ($persen > 0.1) {
-                $changeStatus = 'up';
-                $percentageChange = $persen;
-            } elseif ($persen < -0.1) {
-                $changeStatus = 'down';
-                $percentageChange = abs($persen);
-            } else {
-                $changeStatus = 'same';
-                $percentageChange = 0;
+                if ($persen > 0.1) {
+                    $changeStatus = 'up';
+                    $percentageChange = $persen;
+                } elseif ($persen < -0.1) {
+                    $changeStatus = 'down';
+                    $percentageChange = abs($persen);
+                } else {
+                    $changeStatus = 'same';
+                    $percentageChange = 0;
+                }
             }
+
+            // update harga terakhir
+            $lastHarga[$key] = $hargaBaru;
+
+            $result[] = [
+                'komoditas' => $item->bahanPokok ? ucwords($item->bahanPokok->nama) : null,
+                'pasar' => $item->pasar ? $item->pasar->nama : null,
+                'status' => $status,
+                'stok' => $stok,
+                'harga' => $hargaBaru,
+                'tanggal' => Carbon::parse($item->tanggal)->translatedFormat('d F Y'),
+                'change_status' => $changeStatus,
+                'change_percent' => number_format($percentageChange, 2),
+            ];
         }
 
-        // update harga terakhir
-        $lastHarga[$key] = $hargaBaru;
-
-        $result[] = [
-            'komoditas' => $item->bahanPokok ? ucwords($item->bahanPokok->nama) : null,
-            'pasar' => $item->pasar ? $item->pasar->nama : null,
-            'status' => $status,
-            'stok' => $stok,
-            'harga' => $hargaBaru,
-            'tanggal' => Carbon::parse($item->tanggal)->translatedFormat('d F Y'),
-            'change_status' => $changeStatus,
-            'change_percent' => number_format($percentageChange, 2),
-        ];
+        return response()->json($result);
     }
-
-    return response()->json($result);
-}
 
 
 
@@ -292,24 +292,35 @@ class HargaBapokController extends Controller
         $summary = [];
 
         foreach ($allBahanPokok as $bahanPokok) {
-
-            $latestPrices = DB::table('harga_bapok')
+            $latestData = DB::table('harga_bapok')
                 ->where('id_bahan_pokok', $bahanPokok->id)
                 ->whereNotNull('harga')
                 ->where('harga', '>', 0)
                 ->orderBy('tanggal', 'desc')
-                ->take(2)
-                ->get();
+                ->first();
 
-            if ($latestPrices->count() < 1) {
+            if (!$latestData) {
                 continue;
             }
+            $avgPriceToday = DB::table('harga_bapok')
+                ->where('id_bahan_pokok', $bahanPokok->id)
+                ->whereDate('tanggal', $latestData->tanggal)
+                ->avg('harga');
+            $previousDate = DB::table('harga_bapok')
+                ->where('id_bahan_pokok', $bahanPokok->id)
+                ->whereNotNull('harga')
+                ->where('harga', '>', 0)
+                ->whereDate('tanggal', '<', $latestData->tanggal)
+                ->orderBy('tanggal', 'desc')
+                ->value('tanggal');
 
-            $priceTodayData = $latestPrices->first();
-            $priceYesterdayData = $latestPrices->count() > 1 ? $latestPrices->last() : null;
-
-            $avgPriceToday = $priceTodayData->harga;
-            $avgPriceYesterday = $priceYesterdayData ? $priceYesterdayData->harga : null;
+            $avgPriceYesterday = null;
+            if ($previousDate) {
+                $avgPriceYesterday = DB::table('harga_bapok')
+                    ->where('id_bahan_pokok', $bahanPokok->id)
+                    ->whereDate('tanggal', $previousDate)
+                    ->avg('harga');
+            }
 
             if ($avgPriceYesterday === null) {
                 $changeStatus = 'no-previous-data';
@@ -328,7 +339,8 @@ class HargaBapokController extends Controller
                     $percentageChange = abs($percentageChange);
                 }
             }
-            $itemLatestDate = Carbon::parse($priceTodayData->tanggal)->translatedFormat('d M Y');
+
+            $itemLatestDate = Carbon::parse($latestData->tanggal)->translatedFormat('d M Y');
 
             $summary[] = [
                 'id' => $bahanPokok->id,
@@ -345,6 +357,87 @@ class HargaBapokController extends Controller
         return response()->json($summary);
     }
 
+    public function getHargaBahanPokok(Request $request, $id_bahan_pokok)
+    {
+        $startDate = $request->query('start_date', now()->subMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->toDateString());
+        $idPasar = $request->query('id_pasar', null);
+
+        $namaBahanPokok = HargaBapok::where('id_bahan_pokok', $id_bahan_pokok)
+            ->first()
+            ?->bahanPokok?->nama;
+
+        $query = HargaBapok::query()
+            ->select('harga_bapok.*', 'pasar.nama as nama_pasar')
+            ->join('pasar', 'harga_bapok.id_pasar', '=', 'pasar.id')
+            ->where('id_bahan_pokok', $id_bahan_pokok)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->when($idPasar, fn($q) => $q->where('harga_bapok.id_pasar', $idPasar))
+            ->orderBy('tanggal');
+
+        $allData = $query->get();
+
+        if ($allData->isEmpty()) {
+            return response()->json([
+                'id_bahan_pokok' => $id_bahan_pokok,
+                'nama_bahan_pokok' => $namaBahanPokok ?? 'Tidak Ditemukan',
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'harga_rata' => [],
+                'harga_per_pasar' => [],
+                'harga_ekstrem_terbaru' => null,
+            ]);
+        }
+
+        $hargaRata = $allData->groupBy('tanggal')->map(function ($items, $tanggal) {
+            return [
+                'tanggal' => $tanggal,
+                'harga_rata' => (int) round($items->avg('harga')),
+            ];
+        })->values();
+
+        $hargaPerPasar = $allData->map(function ($item) {
+            return [
+                'tanggal' => $item->tanggal,
+                'id_pasar' => $item->id_pasar,
+                'nama_pasar' => $item->nama_pasar,
+                'harga' => (int) $item->harga,
+            ];
+        });
+
+        $latestEntry = $allData->sortByDesc('tanggal')->first();
+        $hargaEkstremTerbaru = null;
+
+        if ($latestEntry) {
+            $latestDate = $latestEntry->tanggal;
+            $filteredByDate = $allData->where('tanggal', $latestDate);
+
+            $hargaTertinggi = $filteredByDate->sortByDesc('harga')->first();
+            $hargaTerendah = $filteredByDate->sortBy('harga')->first();
+
+            if ($hargaTertinggi && $hargaTerendah) {
+                $hargaEkstremTerbaru = [
+                    'tanggal' => $latestDate,
+                    'harga_tertinggi' => (int) $hargaTertinggi->harga,
+                    'id_pasar_tertinggi' => $hargaTertinggi->id_pasar,
+                    'nama_pasar_tertinggi' => $hargaTertinggi->nama_pasar,
+                    'harga_terendah' => (int) $hargaTerendah->harga,
+                    'id_pasar_terendah' => $hargaTerendah->id_pasar,
+                    'nama_pasar_terendah' => $hargaTerendah->nama_pasar,
+                ];
+            }
+        }
+
+        return response()->json([
+            'id_bahan_pokok' => $id_bahan_pokok,
+            'nama_bahan_pokok' => $namaBahanPokok ?? 'Tidak Ditemukan',
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'harga_rata' => $hargaRata,
+            'harga_per_pasar' => $hargaPerPasar,
+            'harga_ekstrem_terbaru' => $hargaEkstremTerbaru,
+        ]);
+    }
 
     public function destroy(HargaBapok $harga_bapok)
     {
