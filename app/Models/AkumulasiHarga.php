@@ -14,6 +14,7 @@ class AkumulasiHarga extends Model
     protected $fillable = [
         'id_pasar',
         'id_bahan_pokok',
+        'id_harga_bapok',
         'tanggal',
         'harga_rata2',
     ];
@@ -31,5 +32,10 @@ class AkumulasiHarga extends Model
     public function bahanPokok()
     {
         return $this->belongsTo(BahanPokok::class, 'id_bahan_pokok');
+    }
+
+    public function HargaBapok()
+    {
+        return $this->belongsTo(HargaBapok::class, 'id_harga_bapok');
     }
 }
