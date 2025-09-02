@@ -32,7 +32,7 @@ class HargaBapok extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'tanggal' => 'date',
+        // 'tanggal' => 'date',
         'harga' => 'integer', 
     ];
 

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Models\HargaBapok; // Pastikan model ini diimport
+use App\Models\AkumulasiHarga; // Pastikan model ini diimport
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -16,47 +18,96 @@ Artisan::command('inspire', function () {
 
 Schedule::call(function () {
     try {
-        $yesterday = Carbon::yesterday()->toDateString();
-        $today = Carbon::today()->toDateString();
+        $today = Carbon::today();
+        
+        // HANYA jalankan logika jika hari ini adalah Sabtu atau Minggu
+        if ($today->isSaturday() || $today->isSunday()) {
+            
+            $sourceDate = $today->copy()->previous(Carbon::FRIDAY)->toDateString();
+            $targetDate = $today->toDateString();
 
-        Log::info("Scheduler: Mencari data dari tanggal $yesterday.");
+            Log::info("Scheduler: Mencari data dari tanggal $sourceDate untuk disalin ke tanggal $targetDate.");
 
-        $dataKemarin = DB::table('harga_bapok')
-            ->whereDate('tanggal', $yesterday)
-            ->get();
+            $dataJumat = DB::table('harga_bapok')
+                ->whereDate('tanggal', $sourceDate)
+                ->get();
 
-        Log::info("Scheduler: Ditemukan " . $dataKemarin->count() . " item untuk disalin.");
+            Log::info("Scheduler: Ditemukan " . $dataJumat->count() . " item untuk disalin.");
 
-        if ($dataKemarin->isEmpty()) {
-            Log::info("Tidak ada data harga_bapok yang ditemukan untuk disalin.");
-            return;
+            if ($dataJumat->isEmpty()) {
+                Log::info("Tidak ada data harga_bapok yang ditemukan untuk disalin dari hari Jumat.");
+                return;
+            }
+
+            foreach ($dataJumat as $item) {
+                DB::table('harga_bapok')->updateOrInsert(
+                    // Kriteria pencarian
+                    [
+                        'id_pasar' => $item->id_pasar,
+                        'id_bahan_pokok' => $item->id_bahan_pokok,
+                        'tanggal' => $targetDate,
+                    ],
+                    // Nilai yang akan dimasukkan atau diperbarui
+                    [
+                        'harga' => $item->harga,
+                        'stok' => $item->stok,
+                        'status_integrasi' => $item->status_integrasi,
+                        'created_by' => 'Scheduler',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+
+            Log::info("Data harga_bapok berhasil dicopy otomatis untuk tanggal $targetDate dari data tanggal $sourceDate.");
+            
+        } else {
+            // Log ini akan muncul jika hari ini bukan Sabtu atau Minggu
+            Log::info("Scheduler: Tidak ada operasi penyalinan data yang dijadwalkan untuk hari ini.");
         }
-
-        foreach ($dataKemarin as $item) {
-            DB::table('harga_bapok')->updateOrInsert(
-                // Kriteria pencarian: Jika kombinasi ini ada, update. Jika tidak, buat baru.
-                [
-                    'id_pasar' => $item->id_pasar,
-                    'id_bahan_pokok' => $item->id_bahan_pokok,
-                    'tanggal' => $today,
-                ],
-                // Nilai yang akan dimasukkan atau diperbarui
-                [
-                    'harga' => $item->harga,
-                    'stok' => $item->stok,
-                    'status_integrasi' => 'pending',
-                    'created_by' => 'Scheduler',
-                    'created_at' => now(), // created_at akan diperbarui jika ada update, atau diset jika insert
-                    'updated_at' => now(),
-                ]
-            );
-        }
-
-        Log::info("Data harga_bapok berhasil dicopy otomatis untuk tanggal $today.");
 
     } catch (\Exception $e) {
         Log::error("Scheduler Error: " . $e->getMessage());
     }
-})->dailyAt('11:23'); // Pastikan waktu ini sesuai dengan kebutuhan Anda
+})->dailyAt('09:35');
 
 Schedule::command('inspire')->everyMinute();
+
+
+
+Schedule::call(function () {
+    try {
+        Log::info('Scheduler: Mulai menghitung rata-rata harga harian (semua pasar per bahan pokok) untuk hari ini.');
+        
+        // Mengubah variabel menjadi $currentDate untuk merefleksikan 'hari ini'
+        $currentDate = Carbon::today()->toDateString(); // Menggunakan tanggal hari ini
+
+        $results = HargaBapok::select(
+                'id_bahan_pokok',
+                DB::raw('AVG(harga) as harga_rata2')
+            )
+            ->whereDate('tanggal', $currentDate) // Filter hanya untuk data hari ini
+            ->groupBy('id_bahan_pokok') // Rata-rata harga semua pasar, per bahan pokok
+            ->get();
+
+        $count = 0;
+        foreach ($results as $row) {
+            AkumulasiHarga::updateOrCreate(
+                [
+                    'id_bahan_pokok' => $row->id_bahan_pokok,
+                    'tanggal' => $currentDate, // Gunakan $currentDate untuk tanggal akumulasi
+                ],
+                [
+                    'harga_rata2' => $row->harga_rata2,
+                ]
+            );
+            $count++;
+        }
+
+        Log::info("Scheduler: Berhasil memperbarui $count data akumulasi harga untuk tanggal $currentDate.");
+    } catch (\Exception $e) {
+        Log::error("Scheduler Akumulasi Error: " . $e->getMessage());
+    }
+// Mengubah jadwal dari everyMinute() menjadi dailyAt() untuk efisiensi
+})->dailyAt('19:47');
+
