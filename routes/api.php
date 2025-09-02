@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BahanPokokController;
 use App\Http\Controllers\Api\HargaBapokController;
 use App\Http\Controllers\Api\PasarController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AkumulasiHargaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,8 +23,9 @@ Route::get('/pasar', [PasarController::class, 'index']);
 Route::get('/harga-bapok', [HargaBapokController::class, 'index']);
 Route::get('/bahan-pokoks', [HargaBapokController::class, 'summary']);
 Route::get('/tabel-stok', [HargaBapokController::class, 'table']);
-Route::get('/bahan-pokok/grafik/{id_bahan_pokok}', [HargaBapokController::class, 'getHargaBahanPokok']);
 Route::get('/harga-bapok-acc',[HargaBapokController::class, 'getTableAcc']);
+Route::get('/akumulasi',[AkumulasiHargaController::class,'index']);
+Route::get('/akumulasi-byidbapok/{id_bahan_pokok}', [AkumulasiHargaController::class, 'getByBahanPokok']);
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {

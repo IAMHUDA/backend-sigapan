@@ -18,6 +18,21 @@ class AkumulasiHargaController extends Controller
         return response()->json($data);
     }
 
+    public function getByBahanPokok($id_bahan_pokok)
+    {
+        $data = AkumulasiHarga::where('id_bahan_pokok', $id_bahan_pokok)
+                    ->orderBy('tanggal', 'desc')
+                    ->get();
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'message' => 'Data akumulasi harga tidak ditemukan untuk bahan pokok ini'
+            ], 404);
+        }
+
+        return response()->json($data);
+    }
+
     /**
      * Simpan data akumulasi harga baru
      */

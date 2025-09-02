@@ -77,18 +77,17 @@ Schedule::command('inspire')->everyMinute();
 
 Schedule::call(function () {
     try {
-
         Log::info('Scheduler: Mulai menghitung rata-rata harga harian (semua pasar per bahan pokok) untuk hari ini.');
 
-        // Mengubah variabel menjadi $currentDate untuk merefleksikan 'hari ini'
-        $currentDate = Carbon::today()->toDateString(); // Menggunakan tanggal hari ini
+        // Format tanggal pakai translatedFormat
+        $currentDate = Carbon::today()->translatedFormat('d M Y');
 
         $results = HargaBapok::select(
                 'id_bahan_pokok',
                 DB::raw('AVG(harga) as harga_rata2')
             )
-            ->whereDate('tanggal', $currentDate) // Filter hanya untuk data hari ini
-            ->groupBy('id_bahan_pokok') // Rata-rata harga semua pasar, per bahan pokok
+            ->whereDate('tanggal', Carbon::today()->toDateString()) // tetap filter pakai format DATE
+            ->groupBy('id_bahan_pokok')
             ->get();
 
         $count = 0;
@@ -96,7 +95,7 @@ Schedule::call(function () {
             AkumulasiHarga::updateOrCreate(
                 [
                     'id_bahan_pokok' => $row->id_bahan_pokok,
-                    'tanggal' => $currentDate, // Gunakan $currentDate untuk tanggal akumulasi
+                    'tanggal' => $currentDate, // simpan tanggal hasil formatted
                 ],
                 [
                     'harga_rata2' => $row->harga_rata2,
@@ -109,6 +108,4 @@ Schedule::call(function () {
     } catch (\Exception $e) {
         Log::error("Scheduler Akumulasi Error: " . $e->getMessage());
     }
-// Mengubah jadwal dari everyMinute() menjadi dailyAt() untuk efisiensi
 })->dailyAt('19:47');
-

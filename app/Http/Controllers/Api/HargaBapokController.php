@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\HargaBapok;
 use App\Models\BahanPokok;
-use App\Models\Pasar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -357,87 +356,6 @@ class HargaBapokController extends Controller
         return response()->json($summary);
     }
 
-    public function getHargaBahanPokok(Request $request, $id_bahan_pokok)
-    {
-        $startDate = $request->query('start_date', now()->subMonth()->toDateString());
-        $endDate = $request->query('end_date', now()->toDateString());
-        $idPasar = $request->query('id_pasar', null);
-
-        $namaBahanPokok = HargaBapok::where('id_bahan_pokok', $id_bahan_pokok)
-            ->first()
-            ?->bahanPokok?->nama;
-
-        $query = HargaBapok::query()
-            ->select('harga_bapok.*', 'pasar.nama as nama_pasar')
-            ->join('pasar', 'harga_bapok.id_pasar', '=', 'pasar.id')
-            ->where('id_bahan_pokok', $id_bahan_pokok)
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->when($idPasar, fn($q) => $q->where('harga_bapok.id_pasar', $idPasar))
-            ->orderBy('tanggal');
-
-        $allData = $query->get();
-
-        if ($allData->isEmpty()) {
-            return response()->json([
-                'id_bahan_pokok' => $id_bahan_pokok,
-                'nama_bahan_pokok' => $namaBahanPokok ?? 'Tidak Ditemukan',
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'harga_rata' => [],
-                'harga_per_pasar' => [],
-                'harga_ekstrem_terbaru' => null,
-            ]);
-        }
-
-        $hargaRata = $allData->groupBy('tanggal')->map(function ($items, $tanggal) {
-            return [
-                'tanggal' => $tanggal,
-                'harga_rata' => (int) round($items->avg('harga')),
-            ];
-        })->values();
-
-        $hargaPerPasar = $allData->map(function ($item) {
-            return [
-                'tanggal' => $item->tanggal,
-                'id_pasar' => $item->id_pasar,
-                'nama_pasar' => $item->nama_pasar,
-                'harga' => (int) $item->harga,
-            ];
-        });
-
-        $latestEntry = $allData->sortByDesc('tanggal')->first();
-        $hargaEkstremTerbaru = null;
-
-        if ($latestEntry) {
-            $latestDate = $latestEntry->tanggal;
-            $filteredByDate = $allData->where('tanggal', $latestDate);
-
-            $hargaTertinggi = $filteredByDate->sortByDesc('harga')->first();
-            $hargaTerendah = $filteredByDate->sortBy('harga')->first();
-
-            if ($hargaTertinggi && $hargaTerendah) {
-                $hargaEkstremTerbaru = [
-                    'tanggal' => $latestDate,
-                    'harga_tertinggi' => (int) $hargaTertinggi->harga,
-                    'id_pasar_tertinggi' => $hargaTertinggi->id_pasar,
-                    'nama_pasar_tertinggi' => $hargaTertinggi->nama_pasar,
-                    'harga_terendah' => (int) $hargaTerendah->harga,
-                    'id_pasar_terendah' => $hargaTerendah->id_pasar,
-                    'nama_pasar_terendah' => $hargaTerendah->nama_pasar,
-                ];
-            }
-        }
-
-        return response()->json([
-            'id_bahan_pokok' => $id_bahan_pokok,
-            'nama_bahan_pokok' => $namaBahanPokok ?? 'Tidak Ditemukan',
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'harga_rata' => $hargaRata,
-            'harga_per_pasar' => $hargaPerPasar,
-            'harga_ekstrem_terbaru' => $hargaEkstremTerbaru,
-        ]);
-    }
 
     public function destroy(HargaBapok $harga_bapok)
     {
@@ -454,9 +372,6 @@ class HargaBapokController extends Controller
             ], 500);
         }
     }
-
-
-        
 
 
     // 
