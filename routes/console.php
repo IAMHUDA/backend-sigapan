@@ -77,8 +77,9 @@ Schedule::command('inspire')->everyMinute();
 
 Schedule::call(function () {
     try {
+
         Log::info('Scheduler: Mulai menghitung rata-rata harga harian (semua pasar per bahan pokok) untuk hari ini.');
-        
+
         // Mengubah variabel menjadi $currentDate untuk merefleksikan 'hari ini'
         $currentDate = Carbon::today()->toDateString(); // Menggunakan tanggal hari ini
 

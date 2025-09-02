@@ -454,4 +454,41 @@ class HargaBapokController extends Controller
             ], 500);
         }
     }
+
+
+        
+
+
+    // 
+    // controller frontend bagian table 
+    // 
+    public function getTableAcc(Request $request)
+    {
+        try {
+            // Mengambil tanggal hari ini menggunakan Carbon
+            $today = Carbon::today()->toDateString();
+
+            // Mengambil data harga_bapok dengan dua kondisi:
+            // 1. status_integrasi = 'approved' (sesuai dengan tipe data varchar)
+            // 2. tanggal = hari ini
+            $data = HargaBapok::where('status_integrasi', 'approve')
+                                ->whereDate('tanggal', $today)
+                                ->with(['pasar', 'bahanPokok']) // Memuat relasi pasar dan bahanPokok
+                                ->get();
+
+            // Mengembalikan data dalam format JSON dengan status sukses
+            return response()->json([
+                'success' => true,
+                'message' => 'Data harga bahan pokok hari ini berhasil diambil.',
+                'data' => $data,
+            ]);
+
+        } catch (\Exception $e) {
+            // Mengembalikan respons error jika terjadi kegagalan
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
