@@ -24,10 +24,11 @@ Route::get('/pasar', [PasarController::class, 'index']);
 Route::get('/harga-bapok', [HargaBapokController::class, 'index']);
 Route::get('/bahan-pokoks', [HargaBapokController::class, 'summary']);
 Route::get('/tabel-stok', [HargaBapokController::class, 'table']);
-Route::get('/harga-bapok-acc',[HargaBapokController::class, 'getTableAcc']);
-Route::get('/akumulasi',[AkumulasiHargaController::class,'index']);
+Route::get('/harga-bapok-stok', [HargaBapokController::class, 'getTableAcc']);
+// Route::get('/bahan-pokok/grafik/{id_bahan_pokok}', [HargaBapokController::class, 'getHargaBahanPokok']);
+Route::get('/akumulasi', [AkumulasiHargaController::class, 'index']);
 Route::get('/akumulasi-byidbapok/{id_bahan_pokok}', [AkumulasiHargaController::class, 'getByBahanPokok']);
-Route::get('/akumulasi-laporan/{id_bahan_pokok}',[AkumulasiHargaController::class,'getLaporan']);
+Route::get('/bahan-pokok/grafik/{id_bahan_pokok}', [AkumulasiHargaController::class, 'getLaporan']);
 
 // 🔐 Rute hanya untuk pengguna yang sudah login (semua role)
 Route::middleware('auth:sanctum')->group(function () {

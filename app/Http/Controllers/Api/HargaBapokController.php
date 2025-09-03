@@ -355,7 +355,43 @@ class HargaBapokController extends Controller
 
         return response()->json($summary);
     }
+    public function getTableAcc(Request $request)
+    {
+        try {
+            $latestDatesSubquery = HargaBapok::select('id_bahan_pokok', DB::raw('MAX(tanggal) as latest_tanggal'))
+                ->where('status_integrasi', 'approve')
+                ->where('harga', '>', 0)
+                ->groupBy('id_bahan_pokok');
 
+            $data = HargaBapok::with(['pasar', 'bahanPokok'])
+                ->where('status_integrasi', 'approve')
+                ->where('harga', '>', 0)
+                ->joinSub($latestDatesSubquery, 'latest_dates', function ($join) {
+                    $join->on('harga_bapok.id_bahan_pokok', '=', 'latest_dates.id_bahan_pokok')
+                        ->on('harga_bapok.tanggal', '=', 'latest_dates.latest_tanggal');
+                })
+                ->get();
+
+            if ($data->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data harga yang disetujui.',
+                    'data' => []
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data harga bahan pokok terbaru berhasil diambil.',
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function destroy(HargaBapok $harga_bapok)
     {
@@ -373,37 +409,50 @@ class HargaBapokController extends Controller
         }
     }
 
-
-    // 
-    // controller frontend bagian table 
-    // 
-    public function getTableAcc(Request $request)
+    public function getHargaBahanPokok(Request $request, HargaBapok $harga_bapok, $id_bahan_pokok)
     {
-        try {
-            // Mengambil tanggal hari ini menggunakan Carbon
-            $today = Carbon::today()->toDateString();
+        $startDate = $request->query('start_date', now()->subMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->toDateString());
+        $idPasar = $request->query('id_pasar', null);
 
-            // Mengambil data harga_bapok dengan dua kondisi:
-            // 1. status_integrasi = 'approved' (sesuai dengan tipe data varchar)
-            // 2. tanggal = hari ini
-            $data = HargaBapok::where('status_integrasi', 'approve')
-                                ->whereDate('tanggal', $today)
-                                ->with(['pasar', 'bahanPokok']) // Memuat relasi pasar dan bahanPokok
-                                ->get();
+        $hargaRata = $harga_bapok->select('tanggal', DB::raw('AVG(harga) as harga_rata'))
+            ->where('id_bahan_pokok', $id_bahan_pokok)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->when($idPasar, fn($q) => $q->where('id_pasar', $idPasar))
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
 
-            // Mengembalikan data dalam format JSON dengan status sukses
-            return response()->json([
-                'success' => true,
-                'message' => 'Data harga bahan pokok hari ini berhasil diambil.',
-                'data' => $data,
-            ]);
+        $hargaPerPasar = $harga_bapok->select('tanggal', 'id_pasar', 'harga')
+            ->where('id_bahan_pokok', $id_bahan_pokok)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->when($idPasar, fn($q) => $q->where('id_pasar', $idPasar))
+            ->orderBy('tanggal')
+            ->get();
 
-        } catch (\Exception $e) {
-            // Mengembalikan respons error jika terjadi kegagalan
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage(),
-            ], 500);
-        }
+        $latestDate = $harga_bapok->where('id_bahan_pokok', $id_bahan_pokok)
+            ->orderBy('tanggal', 'desc')
+            ->value('tanggal');
+
+        $hargaTertinggi = $harga_bapok->where('id_bahan_pokok', $id_bahan_pokok)
+            ->where('tanggal', $latestDate)
+            ->orderByDesc('harga')
+            ->first();
+
+        $hargaTerendah = $harga_bapok->where('id_bahan_pokok', $id_bahan_pokok)
+            ->where('tanggal', $latestDate)
+            ->orderBy('harga')
+            ->first();
+
+        return response()->json([
+            'id_bahan_pokok' => $id_bahan_pokok,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'harga_rata' => $hargaRata,
+            'harga_per_pasar' => $hargaPerPasar,
+            'harga_tertinggi' => $hargaTertinggi,
+            'harga_terendah' => $hargaTerendah,
+            'latest_date' => $latestDate,
+        ]);
     }
 }
