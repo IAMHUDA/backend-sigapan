@@ -12,7 +12,6 @@ class AkumulasiHarga extends Model
     protected $table = 'akumulasi_harga';
 
     protected $fillable = [
-        'id_pasar',
         'id_bahan_pokok',
         'id_harga_bapok',
         'tanggal',
